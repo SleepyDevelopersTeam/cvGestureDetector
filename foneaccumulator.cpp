@@ -3,83 +3,81 @@
 int FoneAccumulator::dispThreshold;
 int FoneAccumulator::maxN;
 
-FoneAccumulator::FoneAccumulator(size_t height, size_t width )
+FoneAccumulator::FoneAccumulator(size_t width, size_t height)
 {
 	dispThreshold = 60;
 	maxN = 100;
 	
-	disp = new cv::Mat(width, height, CV_8UC1);
-	n = new cv::Mat(width, height, CV_8UC1);
-	accumulator = new cv::Mat(width, height, CV_32F);
-	tracked = new cv::Mat(width, height, CV_8UC1);
-	for (int i = 0; i < width; i++)
-		for (int j = 0; j < height; j++)
+	meanAccumulator = new cv::Mat(height, width, CV_32F);
+	dispAccumulator = new cv::Mat(height, width, CV_32F);
+	
+	n = new cv::Mat(height, width, CV_8UC1);
+	tracked = new cv::Mat(height, width, CV_8UC1);
+	
+	for (int y = 0; y < height; y++)
+		for (int x = 0; x < width; x++)
 		{
-			accumulator->at<uchar>(i, j) = 0;
-			disp->at<uchar>(i, j) = 0;
-			n->at<uchar>(i, j) = 0;
-			tracked->at<uchar>(i, j) = 0;
+			meanAccumulator->at<uchar>(y, x) = 0;
+			dispAccumulator->at<uchar>(y, x) = 0;
+			n->at<uchar>(y, x) = 0;
+			tracked->at<uchar>(y, x) = 0;
 		}
 	
 	this->width = width;
 	this->height = height;
-}
-
-void FoneAccumulator::accumulateAndTrack(cv::Mat *nextFrame)
-{
-	accumulate(nextFrame);
-	for (int i = 0; i < width; i++)
-		for (int j = 0; j < height; j++)
-		  {
-			if (tracked->at<uchar>(i, j) == 255 && disp->at<uchar>(i, j) > dispThreshold)
-			{
-				disp->at<uchar>(i, j) = 0;
-			}
-		  }
-	getForegroundMask(*tracked);
+	
+	forceFoneAccumulating = false;
 }
 
 void FoneAccumulator::accumulate(cv::Mat *nextFrame)
 {
 	// each pixel
-	for (int x = 0; x < width; ++x)
+	for (int y = 0; y < height; ++y)
 	{
-		for (int y = 0; y < height; ++y)
+		for (int x = 0; x < width; ++x)
 		{
-			uint accumulated = accumulator->at<uint>(x, y);
-			uchar N = n->at<uchar>(x, y);
-			uint m = 0;
+			uint accumulatedMean = meanAccumulator->at<uint>(y, x);
+			uint accumulatedDisp = dispAccumulator->at<uint>(y, x);
+			uchar N = n->at<uchar>(y, x);
+			uint mean = 0;
+			uint disp = 0;
 			if (N!=0)
 			{
-				m = accumulated / N;
+				mean = accumulatedMean / N;
+				disp = accumulatedDisp / N;
 			}
-	
-			uchar addition = nextFrame->at<uchar>(x, y);
-			uchar tmp_disp = abs(m - addition);/*(m - addition);*/
-	
-	
-			// TODO: use statistical approach (with N used)
-			if (tmp_disp < dispThreshold || N == 0)
-	
+			
+			uchar addition = nextFrame->at<uchar>(y, x);
+			uchar diff = abs(mean - addition);
+			
+			// first condition is for cases when we haven't collected much data yet and disp is too small
+			// second defines, if variance `diff` can be explained with fone picture noise
+			// third is for the case of the first frame, when we don't have any data and have to collect it
+			// fourth is for ones who would like to accumulate fone with no conditions
+			if (diff < dispThreshold || diff*diff < disp || N == 0 || forceFoneAccumulating)
 			{
-				tracked->at<uchar>(x, y) = 0;
-				uint newValue = accumulated + addition;
+				tracked->at<uchar>(y, x) = 0;
+				
+				uint newMeanValue = accumulatedMean + addition;
+				uint newDispValue = accumulatedDisp + diff*diff;
+				
 				if (N == maxN)
 				{
-					// normalizing accumulator
-					newValue = (uint) ((float)(newValue) / (N+1) * (N+0));
+					// normalizing accumulators
+					newMeanValue = (uint) ((float)(newMeanValue) / (N + 1) * N);
+					newDispValue = (uint) ((float)(newDispValue) / (N + 1) * N); // TODO: is this a correct normalization?
 				}
 				else
 				{
-					n->at<uchar>(x, y) = N + 1;
+					n->at<uchar>(y, x) = N + 1;
 				}
-	
-				accumulator->at<uint>(x, y) = newValue;
-				disp->at<uchar>(x, y) = abs(m - addition);/*(m - addition);*/
+				
+				meanAccumulator->at<uint>(y, x) = newMeanValue;
+				dispAccumulator->at<uint>(y, x) = newDispValue;
 			}
-			else
+			else // pixel tends not to belong the background
 			{
-				tracked->at<uchar>(x, y) = 255;
+				tracked->at<uchar>(y, x) = 255;
 			}
 		}
 	}
@@ -87,12 +85,21 @@ void FoneAccumulator::accumulate(cv::Mat *nextFrame)
 
 void FoneAccumulator::getForegroundMask(cv::Mat& thresholded)
 {
-    threshold(*disp, thresholded, dispThreshold, (uchar) 255, 0);
+	threshold(*disp, thresholded, dispThreshold, (uchar) 255, 0);
+}
+
+void FoneAccumulator::enableForceAccumulating()
+{
+	forceFoneAccumulating = true;
+}
+void FoneAccumulator::disableForceAccumulating()
+{
+	forceFoneAccumulating = false;
 }
 
 FoneAccumulator::~FoneAccumulator()
 {
-    delete accumulator;
-    delete disp;
-    delete n;
+	delete accumulator;
+	delete disp;
+	delete n;
 }

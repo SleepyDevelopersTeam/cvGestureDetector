@@ -11,8 +11,8 @@ class FoneAccumulator
 public:
 	FoneAccumulator(size_t height, size_t width);
 	
-	cv::Mat* accumulator;
-	cv::Mat* disp;
+	cv::Mat* meanAccumulator;
+	cv::Mat* dispAccumulator;
 	cv::Mat* n;
 	
 	cv::Mat* tracked;
@@ -21,6 +21,10 @@ public:
 	
 	static int dispThreshold;
 	static int maxN;
+	
+	bool forceFoneAccumulating;
+	void enableForceAccumulating();
+	void disableForceAccumulating();
 	
 	void accumulate(cv::Mat* nextFrame);
 	void tracking(cv::Mat* nextFrame);
