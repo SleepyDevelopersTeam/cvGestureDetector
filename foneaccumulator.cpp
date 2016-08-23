@@ -85,7 +85,7 @@ void FoneAccumulator::accumulate(cv::Mat *nextFrame)
 
 void FoneAccumulator::getForegroundMask(cv::Mat& thresholded)
 {
-	threshold(*disp, thresholded, dispThreshold, (uchar) 255, 0);
+    threshold(*dispAccumulator, thresholded, dispThreshold, (uchar) 255, 0);
 }
 
 void FoneAccumulator::enableForceAccumulating()
@@ -99,7 +99,8 @@ void FoneAccumulator::disableForceAccumulating()
 
 FoneAccumulator::~FoneAccumulator()
 {
-	delete accumulator;
-	delete disp;
+    delete meanAccumulator;
+    delete dispAccumulator;
 	delete n;
+    delete tracked;
 }

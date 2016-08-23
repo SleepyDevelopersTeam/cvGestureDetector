@@ -6,6 +6,7 @@
 #include <iostream>
 #include <QDebug>
 #include "foneaccumulator.h"
+#include "gesturedetector.h"
 int main(int argc, char* argv[])
 {
 	CvCapture* capture = cvCreateCameraCapture(CV_CAP_ANY); //cvCaptureFromCAM( 0 );
@@ -17,6 +18,7 @@ int main(int argc, char* argv[])
 	cvNamedWindow("capture", CV_WINDOW_AUTOSIZE);
 	
 	FoneAccumulator acc = FoneAccumulator((size_t)width, (size_t)height);
+    GestureDetector gestDetector = GestureDetector();
 	int frame_number = 0;
 	while(true)
 	{
@@ -25,7 +27,11 @@ int main(int argc, char* argv[])
 			cv::cvtColor(mat_frame, mat_frame, CV_BGR2GRAY,1);
 			acc.accumulate(&mat_frame);
 			acc.getForegroundMask(mat_frame);
-			cv::imshow("capture", *(acc.tracked));
+            cv::imshow("capture", *(acc.tracked));
+            if (gestDetector.detect(*(acc.tracked)))
+            {
+                qDebug()<<"Gesture detected!!!!!!!!!";
+            }
 			char c = cvWaitKey(33);
 			if (c == 27)
 			{
