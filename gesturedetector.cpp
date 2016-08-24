@@ -1,15 +1,28 @@
 #include "gesturedetector.h"
+#include <QDebug>
+#define TIME_TO_RESET 20
 
 GestureDetector::GestureDetector()
 {
     critDeltaWidth = 60;
     critHeight = 30;
     prevWidth = INT_MAX;
+    accumulator = Accumulator();
+    chilloutcounter = 0;
 }
 
 bool GestureDetector::detect(cv::Mat& frame)
 {
-    bool result = false;
+    if (chilloutcounter!=0)
+    {
+        chilloutcounter++;
+        if (chilloutcounter == TIME_TO_RESET)
+        {
+            qDebug()<<"chilout ended";
+            chilloutcounter = 0;
+        }
+        return false;
+    }
     int currentHorWhite = 0;
     int MaxHorWhite = 0;
     for (int x = 0; x < frame.cols; ++x)
@@ -45,11 +58,16 @@ bool GestureDetector::detect(cv::Mat& frame)
         }
     }
 
-    if ((MaxHorWhite - prevWidth) > critDeltaWidth)
-    {
-        result = true;
-    }
-
     prevWidth = MaxHorWhite;
-    return result;
+
+    if (accumulator.accumulate(MaxHorWhite))
+    {
+        chilloutcounter++;
+        accumulator.reset();
+        return true;
+    }
+    else
+    {
+        return false;
+    }
 }

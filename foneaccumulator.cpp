@@ -5,7 +5,7 @@ int FoneAccumulator::maxN;
 
 FoneAccumulator::FoneAccumulator(size_t width, size_t height)
 {
-	dispThreshold = 60;
+    dispThreshold = 20;
 	maxN = 100;
 	
 	meanAccumulator = new cv::Mat(height, width, CV_32F);

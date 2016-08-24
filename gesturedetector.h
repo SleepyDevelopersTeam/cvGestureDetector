@@ -1,6 +1,7 @@
 #ifndef GESTUREDETECTOR_H
 #define GESTUREDETECTOR_H
 #include <opencv/cv.h>
+#include "accumulator.h"
 
 class GestureDetector
 {
@@ -10,6 +11,8 @@ public:
     int critDeltaWidth;
     int critHeight;
     int prevWidth;
+    int chilloutcounter;
+    Accumulator accumulator;
 };
 
 #endif // GESTUREDETECTOR_H
