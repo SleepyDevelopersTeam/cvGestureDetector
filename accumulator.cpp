@@ -32,8 +32,8 @@ float Accumulator::accumulate(int next)
 
     if (n!=0)
     {
-        mean = (float)meanAccumulator / n;
-        disp = (float)dispAccumulator / n;
+        mean = meanAccumulator / (float) n;
+        disp = dispAccumulator / (float) n;
     }
     qDebug()<<mean<<" "<<disp;
     int diff = (int)(mean - next);
@@ -68,4 +68,10 @@ void Accumulator::reset()
     dispAccumulator = 0;
     force_learn = false;
     frame_counter = 0;
+}
+
+float Accumulator::getDisp()
+{
+    if (n == 0) return 0.0F;
+    return dispAccumulator / (float) n;
 }

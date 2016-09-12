@@ -13,6 +13,8 @@ public:
     int prevWidth;
     int chilloutcounter;
     Accumulator accumulator;
+    float minDisp;
+    float minWidthRate;
 };
 
 #endif // GESTUREDETECTOR_H

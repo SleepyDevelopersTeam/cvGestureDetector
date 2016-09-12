@@ -9,6 +9,8 @@ GestureDetector::GestureDetector()
     prevWidth = INT_MAX;
     accumulator = Accumulator();
     chilloutcounter = 0;
+    minDisp = 100.0F;
+    minWidthRate = 0.05F;
 }
 
 bool GestureDetector::detect(cv::Mat& frame)
@@ -62,6 +64,19 @@ bool GestureDetector::detect(cv::Mat& frame)
 
     if (accumulator.accumulate(MaxHorWhite))
     {
+        // gesture detected
+        if (frame.size().width * minWidthRate > MaxHorWhite)
+        {
+            // too short body width
+            accumulator.forceLearn();
+            return false;
+        }
+        if (accumulator.getDisp() < minDisp)
+        {
+            // too little disp accumulated, don't make such unconsidered decisions
+            accumulator.forceLearn();
+            return false;
+        }
         chilloutcounter++;
         accumulator.reset();
         return true;

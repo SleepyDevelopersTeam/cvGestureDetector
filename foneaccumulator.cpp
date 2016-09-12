@@ -2,11 +2,14 @@
 #include <iostream>
 int FoneAccumulator::dispThreshold;
 int FoneAccumulator::maxN;
+int FoneAccumulator::forceLearnDuration = 60;
 
 FoneAccumulator::FoneAccumulator(size_t width, size_t height)
 {
     dispThreshold = 20;
 	maxN = 100;
+
+    trackedPixelsThreshold = 0.5F;
 	
 	meanAccumulator = new cv::Mat(height, width, CV_32F);
 	dispAccumulator = new cv::Mat(height, width, CV_32F);
@@ -27,10 +30,12 @@ FoneAccumulator::FoneAccumulator(size_t width, size_t height)
 	this->height = height;
 	
 	forceFoneAccumulating = false;
+    forceLearnFrameCounter = 0;
 }
 
 void FoneAccumulator::accumulate(cv::Mat *nextFrame)
 {
+    int foregroundPixelsCount = 0;
 	// each pixel
 	for (int y = 0; y < height; ++y)
 	{
@@ -77,10 +82,25 @@ void FoneAccumulator::accumulate(cv::Mat *nextFrame)
 			}
 			else // pixel tends not to belong the background
 			{
+                ++foregroundPixelsCount;
 				tracked->at<uchar>(y, x) = 255;
 			}
 		}
 	}
+
+    if (foregroundPixelsCount > nextFrame->size().area() * trackedPixelsThreshold)
+    {
+        enableForceAccumulating();
+    }
+
+    if (forceFoneAccumulating)
+    {
+        ++forceLearnFrameCounter;
+        if (forceLearnFrameCounter >= forceLearnDuration)
+        {
+            disableForceAccumulating();
+        }
+    }
 }
 
 void FoneAccumulator::getForegroundMask(cv::Mat& thresholded)
@@ -91,6 +111,7 @@ void FoneAccumulator::getForegroundMask(cv::Mat& thresholded)
 void FoneAccumulator::enableForceAccumulating()
 {
 	forceFoneAccumulating = true;
+    forceLearnFrameCounter = 0;
 }
 void FoneAccumulator::disableForceAccumulating()
 {

@@ -16,6 +16,8 @@ public:
     int frame_counter = 0;
     void needForceLearn();
     void reset();
+
+    float getDisp();
 };
 
 #endif // ACCUMULATOR_H

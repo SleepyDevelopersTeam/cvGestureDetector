@@ -7,6 +7,17 @@
 #include <QDebug>
 #include "foneaccumulator.h"
 #include "gesturedetector.h"
+
+cv::Mat gauss_Filter(const cv::Mat& image)
+{
+    cv::Mat result_image;
+    double sigma=3;
+    cv::GaussianBlur(image,result_image,cv::Size(3*sigma,3*sigma),sigma);
+    return result_image;
+}
+
+cv::Mat humanShowableImage;
+
 int main(int argc, char* argv[])
 {
 	CvCapture* capture = cvCreateCameraCapture(CV_CAP_ANY); //cvCaptureFromCAM( 0 );
@@ -25,9 +36,20 @@ int main(int argc, char* argv[])
 			frame = cvQueryFrame( capture );
 			cv::Mat mat_frame = cv::cvarrToMat(frame);
 			cv::cvtColor(mat_frame, mat_frame, CV_BGR2GRAY,1);
+            mat_frame = gauss_Filter(mat_frame);
+            //mat_frame.copyTo(humanShowableImage);
 			acc.accumulate(&mat_frame);
-			acc.getForegroundMask(mat_frame);
-            cv::imshow("capture", *(acc.tracked));
+
+            if (acc.forceFoneAccumulating)
+            {
+                // fone is being resetting now, let's reset body width accumulator too
+                gestDetector.accumulator.forceLearn();
+            }
+
+            //acc.getForegroundMask(mat_frame);
+            cv::bitwise_and(mat_frame, *(acc.tracked), mat_frame);
+            //mat_frame.copyTo(mat_frame, *acc.tracked);
+            cv::imshow("capture", mat_frame);
             if (gestDetector.detect(*(acc.tracked)))
             {
                 qDebug()<<"Gesture detected!!!!!!!!!";

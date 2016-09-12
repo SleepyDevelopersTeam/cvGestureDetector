@@ -19,11 +19,16 @@ public:
 	cv::Mat* tracked;
 	
 	int width, height;
+
+    // amount of pixels out of fone at which we need to recalculate fone
+    float trackedPixelsThreshold;
 	
 	static int dispThreshold;
 	static int maxN;
+    static int forceLearnDuration;
 	
 	bool forceFoneAccumulating;
+    int forceLearnFrameCounter;
 	void enableForceAccumulating();
 	void disableForceAccumulating();
 	
